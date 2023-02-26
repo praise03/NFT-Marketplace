@@ -13,7 +13,7 @@ To get a local copy up and running follow these simple example steps.
   yarn install
   ```
    ```sh
-  yarn node (compile solidity files and spin up an hardhat node)
+  yarn hardhat node (compile solidity files and spin up an hardhat node)
   ```
 
 * Load the Client Side Interface
