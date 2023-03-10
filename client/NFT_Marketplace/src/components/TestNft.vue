@@ -49,7 +49,8 @@
 
     const mintTo = async(addressTo) => {
         try {
-            await TestNft.safeMint(addressTo)
+            const txresponce = await TestNft.safeMint(addressTo)
+            await txresponce.wait(1)
             fetchStats()
         } catch (error) {
             console.log(error)

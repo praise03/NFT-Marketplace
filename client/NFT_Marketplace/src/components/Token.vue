@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col md:flex-row p-1 sm:p-2 space-x-1">
+  <div class="flex flex-col md:flex-row p-1 sm:p-2 space-x-2">
     <div class="md:w-5/12">
 		<h1 @click="router.push('/marketplace')" class="text-blue-600 text-lg font-bold mb-3 cursor-pointer">NFT Collection 1</h1>
       <div class="border-2 bg-slate-800 rounded-t-lg">
@@ -11,7 +11,7 @@
     </div>
 
     <div class="md:w-6/12">
-      <br />
+      <br><br>
 	  <div class="flex float-right align-top ">
 	  
 	  <div v-if="isOwner()" class="p-1 mb-4">
@@ -41,12 +41,13 @@
 		</div>
 	  </div>
       <h2 class="font-bold text-2xl">NFT Token #{{route.params.id}}</h2>
-      <span class="flex font-thin text-xs"
+      <span v-if="isOwner()" class="flex font-thin text-xs">Owned by You</span>
+	  <span v-else class="flex font-thin text-xs"
         >Owned By
         <p class="text-blue-600 ml-1 text-md">{{owner.substring(0,6)}}....</p>
       </span>
 
-      <div v-if="parsedCurrentPrice != null" class="p-6 border rounded-md mt-8">
+      <div v-if="parsedCurrentPrice != null || parsedCurrentPrice != undefined" class="p-6 border rounded-md mt-8">
         <p class="font-thin text-sm">Current Price</p>
         <h2 class="text-3xl font-bold mt-1">
           {{parsedCurrentPrice}} ETH <span class="font-thin text-xs">${{parsedCurrentPrice * 1204}}</span>
@@ -94,8 +95,10 @@ let owner = ref('')
 let price = ref(null)
 let newPrice = ref(null)
 let currentPrice = ref(null)
+let recalculate = ref(0)
 
 const parsedCurrentPrice = computed(() => {
+	recalculate.value
 	if (currentPrice.value) {
 		return ethers.utils.formatEther(currentPrice.value)	
 	}
@@ -113,11 +116,13 @@ const getPrice = () => {
 		for (let index = 0; index < listings.length; index++) {
 			if (listings[index].tokenId == route.params.id ) {
 				currentPrice.value = listings[index].price
-				return currentPrice.value
 				// console.log(currentPrice.value)
-			}
+				recalculate.value++
+				return currentPrice.value
+				
+			}else {currentPrice.value = null}
 		}
-	}
+	}else{ currentPrice.value = null}
 	
 }
 getPrice()
@@ -165,6 +170,7 @@ const ListItem =  async () => {
 
 				Listings.addListing(newListing)
 				// console.log(listings)
+				price.value = ""
 				getPrice()
 				
 			} else {
@@ -186,6 +192,10 @@ const lowerPrice = async () => {
 	if( Number(ethers.utils.formatEther(listing.price)) == 0){
 		return
 	}
+	if (Number(price.value) > Number(ethers.utils.formatEther(listing.price)) || Number(price.value) == Number(ethers.utils.formatEther(listing.price)) ) {
+		alert("New price must be lesser than old price");
+		return;
+	}
 	try {
 		const response = await NFTMarketplace.lowerPrice(testNFT.address, tokenId, ethers.utils.parseUnits(price.value,"ether"))
 		await response.wait(1)
@@ -199,22 +209,23 @@ const lowerPrice = async () => {
 		}
 		const listing = await NFTMarketplace.getListing(testNFT.address, tokenId)
 		console.log(listing)
+		price.value = ""
 		getPrice()
 	}
-	catch(error) { console.log(error); }
+	catch(error) { console.log(error);  }
 }
 
 const buyItem = async () => {
 	try {
 		const price = currentPrice.value
-		console.log(currentPrice.value)
 		const txResponse = await NFTMarketplace.buyNFT(testNFT.address, route.params.id, { value: price })
 		await txResponse.wait(1)
-		console.log("new owner: ",await testNFT.ownerOf(route.params.id))
+		// console.log("new owner: ",await testNFT.ownerOf(route.params.id))
 		Listings.cancelListing(route.params.id)
 		sales.recordSale(owner.value, String(store.currentAccount), Number(route.params.id), price, new Date())
 		fetchOwner()
 		getPrice()
+		console.log("here ",  parsedCurrentPrice.value)
 	} catch (error) {
 		console.log(error)
 	}

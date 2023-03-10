@@ -386,6 +386,7 @@
 import { ref } from "vue";
 import { ethers } from "ethers";
 import { saleStore } from "../saleStore";
+import { webStore } from "../store"
 import { listingStore } from "../listingsStore";
 
 //relative time format
@@ -396,6 +397,7 @@ dayjs.extend(relativeTime);
 
 const listings = listingStore().listings;
 console.log(listings);
+const store = webStore();
 const sales = saleStore().sales;
 
 const activity = ref("listings");
@@ -403,6 +405,7 @@ const activity = ref("listings");
 const getRelativeTime = (time) => {
   return dayjs(time).fromNow();
 };
+
 
 const parsePrice = (price) => {
   return ethers.utils.formatEther(price);
