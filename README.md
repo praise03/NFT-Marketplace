@@ -25,3 +25,8 @@ To get a local copy up and running follow these simple example steps.
   yarn start
   ```
 
+## Project Screenshots
+```sh
+  1.Start by minting some tokens to your metamask address
+```
+![alt text](https://github.com/praise03/NFT-Marketplace/blob/main/client/Screenshots/Desktop-screenshot.png?raw=true)
