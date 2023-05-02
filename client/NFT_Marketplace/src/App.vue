@@ -1,5 +1,6 @@
 <template>
 <div>
+	<notifications position="bottom right"/>
   <nav class="bg-white border-gray-200 px-2 sm:px-4 py-2.5 rounded dark:bg-gray-900">
         <div class="container flex flex-wrap justify-between items-center mx-auto">
         <a href="#" class="p-2 flex items-center">
@@ -7,7 +8,7 @@
             <span class="self-center text-xl font-semibold whitespace-nowrap dark:text-white">BrokenSea</span>
         </a>
         <div class="flex md:order-2">
-            <button v-if="currentAccount !== null" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3 md:mr-0 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">{{ currentAccount }}</button>
+            <button @click="router.push('/account/' + currentAccount)" v-if="currentAccount !== null" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3 md:mr-0 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">{{ currentAccount }}</button>
             <button v-else @click="connectWallet" type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center mr-3 md:mr-0 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Connect</button>
         </div>
         <div class="justify-between items-center w-full md:flex md:w-auto md:order-1" id="navbar-cta">
@@ -27,9 +28,10 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, ref } from 'vue'
+import { onBeforeMount,  ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { webStore } from "./store"
+import {utils} from 'ethers'
 
 declare let window: any;
 
@@ -46,7 +48,7 @@ declare let window: any;
 				method: "eth_requestAccounts",
 			})
 			console.log(accounts[0] + "connected");
-			currentAccount.value = accounts[0]
+			currentAccount.value = utils.getAddress(accounts[0])
 			store.currentAccount = currentAccount.value
 		} catch (error){ console.log (error)}
 	}
@@ -59,7 +61,7 @@ declare let window: any;
 			const accounts = await ethereum.request({ method: "eth_accounts" });
 
 			if(accounts.length !== 0) {
-				currentAccount.value = accounts[0]
+				currentAccount.value = utils.getAddress(accounts[0])
 				store.currentAccount = currentAccount.value
 
 				accountConnected.value = true
@@ -75,10 +77,8 @@ declare let window: any;
 
 
 	
-	onBeforeMount(async () => {
-		await store.loadTestNFT()
-		await store.loadNFTMarketplace()
-		await checkIfAccountConnected()
-    });
-
+	store.loadTestNFT()
+	store.loadNFTMarketplace()
+	checkIfAccountConnected()
+    
 </script>

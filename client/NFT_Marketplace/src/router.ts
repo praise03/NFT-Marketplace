@@ -4,6 +4,7 @@ import Error from "./components/Error.vue";
 import TestNft from "./components/TestNft.vue"
 import NFTMarketplace from "./components/Marketplace.vue"
 import Token from "./components/Token.vue"
+import Account from "./components/Account.vue"
 
 const routes = [
     {
@@ -30,6 +31,11 @@ const routes = [
         path: "/token/:id",
         name: "Token",
         component: Token
+    },
+    {
+        path: "/account/:account",
+        name: "Account",
+        component: Account
     }
 ]
 

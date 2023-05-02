@@ -1,77 +1,66 @@
 <template>
-  <div class="w-full flex flex-row">
-    <form action="" class="w-1/6">
-      <ul
-        class="
-          text-sm
-          w-full
-          p-1
-          font-medium
-          text-gray-900
-          bg-white
-          rounded-lg
-          border border-gray-200
-          dark:bg-gray-700 dark:border-gray-600 dark:text-white
-        "
-      >
-        <li
-          @click="activity = 'sales'"
-          class="
-            w-full
-            rounded-t-lg
-            border-gray-200
-            dark:border-gray-600
-            cursor-pointer
-          "
-        >
-          <div class="flex items-center pl-3 cursor-pointer">
-            <span
-              class="
-                py-3
-                ml-2
-                w-full
-                text-sm
-                font-medium
-                text-gray-900
-                dark:text-gray-300
-                border-b
-              "
-              :class="{ 'text-blue-600': activity == 'sales' }"
-              >Sales</span
-            >
-          </div>
-        </li>
-        <li
-          @click="activity = 'listings'"
-          class="
-            w-full
-            rounded-t-lg
-            border-gray-200
-            dark:border-gray-600
-            cursor-pointer
-          "
-        >
-          <div class="flex items-center pl-3 cursor-pointer">
-            <span
-              class="
-                py-3
-                ml-2
-                w-full
-                text-sm
-                font-medium
-                text-gray-900
-                dark:text-gray-300
-              "
-              :class="{ 'text-blue-600': activity == 'listings' }"
-              >Listings</span
-            >
-          </div>
-        </li>
-      </ul>
-    </form>
+<div>
+  <div>
+    <div class="relative">
+        <img src="/banner.png" class="w-full h-80" alt="" />
+        <img src="/img.png" class="image  top-auto" alt="" />
+    </div>
 
-    <div class="w-d w-5/6">
-      <div class="container mx-auto px-4 sm:px-8">
+    <div class="p-6 space-y-3">
+        <h1 class="text-2xl font-bold">{{store.currentAccount}}</h1>
+    </div>
+
+    <div class=" w-full border-b mb-4 flex  flex-row space-x-10">
+
+        <div @click="currentTab = 'Collected'" :class="{underline : currentTab == 'Collected'}" class="cursor-pointer ml-6 mb-2">
+            <h1>Collected</h1>
+        </div>
+        <div @click="currentTab = 'Activity'" :class="{underline : currentTab == 'Activity'}" class="ml-6 cursor-pointer">
+            <h1>Activity</h1>
+        </div>
+    </div>
+  </div>
+
+  <div v-if="currentTab == 'Collected'">
+        <div class="flex flex-wrap md:w-3/4 p-2 ml-4">
+            <!-- <button @click="showListings()">Show Listings</button> -->
+            <div
+            v-for="token in userTokens"
+            :key="token.id"
+            class="flex items-center justify-center cursor-pointer"
+            >
+            <div
+                @click="router.push('/token/' + token.id)"
+                class="md:w-64 bg-gray-800 mb-4 mr-4 rounded-md shadow-xl"
+            >
+                <img
+                src="/img.png"
+                class="hover:scale-75 ease-in duration-500"
+                alt="BAYC Ape"
+                />
+                <div class="bg-white text-black p-2 rounded-md">
+                <h2 class="text-md font-semibold mt-3">#{{ token.id }}</h2>
+                <div class="flex justify-between items-center text-sm mt-2">
+                    <p class="font-semibold text-lg" v-if="getTokenPrice(token.id) != null">
+                    <i class=" fab fa-ethereum"></i> {{ getTokenPrice(token.id) }}
+                    <span class="font-thin text-xs">ETH</span>
+                    </p>
+                    <p class="font-semibold text-lg" v-else>
+                    
+                    <span class="font-thin text-xs">No active listing</span>
+                    </p>
+
+                    <!-- <button @click="buyItem(token.id)" class="px-4 rounded-md float-right py-1 bg-black text-white">Buy</button> -->
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+  </div>
+
+
+  <div v-if="currentTab == 'Activity'" class="w-d w-full">
+      <div class="">
         <div class="py-2">
           <div class="-mx-4 sm:-mx-8 px-4 sm:px-8 overflow-x-auto">
             <div
@@ -79,7 +68,7 @@
                 inline-block
                 min-w-full
                 shadow-md
-                rounded-lg
+                rounded-sm
                 overflow-hidden
               "
             >
@@ -177,7 +166,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr class="hover:bg-gray-300 cursor-pointer" v-for="activity in allActivities" :key="activity.tokenId">
+                  
+                  <tr class="hover:bg-gray-300 cursor-pointer" v-for="activity in userActivity" :key="activity.tokenId">
                     <td
                       class="
                         px-5
@@ -206,7 +196,7 @@
                         </div>
                         <div class="ml-3">
                           <p class="text-gray-900 whitespace-no-wrap">
-                            NFT Collection 1
+                            Gen Art
                           </p>
                           <p class="text-gray-600 whitespace-no-wrap">
                             #{{ activity.tokenId }}
@@ -272,20 +262,28 @@
         </div>
       </div>
     </div>
-  </div>
+</div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { ethers } from "ethers";
+import { onBeforeMount, ref, computed, watch } from "vue";
 import { useQuery } from '@vue/apollo-composable'
 import gql from 'graphql-tag'
 import moment from 'moment';
+import { webStore } from "../store";
+import { ethers } from "ethers";
+import { useRoute, useRouter } from "vue-router";
 moment().format();
 
-const allActivities = ref([]) 
+const currentTab = ref("Collected")
+const userActivity = ref([]); 
+const userTokens = ref([]);
 
-const activity = ref("listings");
+const route = useRoute();
+
+const store = webStore()
+const testNFT = store.testNFT
+const account = route.params.account
 
 const getRelativeTime = (timestamp) => {
   const parsedTime = moment.unix(timestamp);
@@ -297,10 +295,11 @@ const parsePrice = (price) => {
   return price / (10 ** 18) ? price / (10 ** 18) + 'E' : "------";
 };
 
-
-const { result, error } = useQuery(gql`
-	query fetchAllActivities {
-		nftListings(first : 100 ) {
+const getActivity = async() => {
+  const userActivities = ref([])
+	const { result, error } = useQuery(gql`
+	query NftListed($account: String) {
+		nftListings(where : { owner: $account } ) {
 			id
 			nftAddress
 			tokenId
@@ -308,7 +307,7 @@ const { result, error } = useQuery(gql`
 			owner
 			blockTimestamp
 		}
-		nftSales(first : 100){
+		nftSales(where: { or: [{ buyer: $account }, { seller: $account }] }){
 		    id
 		    nftAddress
 		    tokenId
@@ -317,25 +316,90 @@ const { result, error } = useQuery(gql`
 		    seller
 		    blockTimestamp
 		}
-    nftMinteds(first : 100) {
+    nftMinteds(where : { owner: $account } ) {
 			id
 			tokenId
 			owner
 			blockTimestamp
 		}
-    nftCancels(first : 100) {
+    nftCancels(where : { owner: $account } ) {
 			id
 			tokenId
 			owner
 			blockTimestamp
 		}
 	}
-	`)
+	`, { account: account })
 	
 	watch(result, value => {
-		const all = value.nftListings.concat(value.nftSales, value.nftMinteds, value.nftCancels)
-		allActivities.value = all.sort(function(x, y){
-      return y.blockTimestamp - x.blockTimestamp;
-    })
+		userActivities.value = value.nftListings.concat(value.nftSales, value.nftMinteds, value.nftCancels)
+		userActivity.value= userActivities.value.sort(function(x, y){
+								return y.blockTimestamp - x.blockTimestamp;
+							})
+		console.log(userActivity.value)
 	})
+}
+getActivity()
+
+const fetchUserTokens = async() => {
+    // const tokenCount = await testNFT._tokenCounter()
+    let loop = false;
+    let num = 1;
+    while (loop) {
+        try {
+        //Fetch tokens
+        const response = await testNFT.ownerOf(num);
+        console.log(response)
+        if (response == store.currentAccount) {
+            const Item = {
+                id: num,
+                owner: response,
+            };  
+            userTokens.value.push(Item);  
+        }
+        ++num;
+        } catch (error) {
+        console.log("No more tokens");
+        loop = false;
+        }
+    }
+}
+fetchUserTokens();
+
+const getTokenPrice = (tokenId:string) => {
+  const { result } = useQuery(gql`
+      query nftTokenPrice($tokenId: String ) {
+        nftListings(where : { tokenId: $tokenId } ) {
+            price
+        }
+      }
+    `, { tokenId: tokenId })
+    console.log(result)
+    watch(result, value => {
+      return value.nftListings[0].price / (10 ** 18)
+    })
+};
+
+const parseIpfs = (ipfsHash) => {
+	const URL = "https://gateway.pinata.cloud/ipfs/"
+	const hash = ipfsHash.replace(/^ipfs?:\/\//, '')
+	const ipfsURL = URL + hash
+
+	return ipfsURL
+} 
+
+
+
+async function getTokenImage(tokenId){
+	const ipfsHash = await testNFT.tokenURI(tokenId)
+	const pinataUrl = parseIpfs(ipfsHash)
+	const response = await fetch(pinataUrl);
+
+	if(!response.ok)
+	throw new Error(response.statusText);
+
+	const tokenUri = await response.json();
+	const tokenImage = parseIpfs(tokenUri.image) 
+	return tokenImage
+}
 </script>

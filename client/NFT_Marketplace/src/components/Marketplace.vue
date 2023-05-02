@@ -7,7 +7,7 @@
         </div>
 
         <div class="p-6 space-y-3">
-        <h1 class="text-2xl font-bold">NFT Collection 1</h1>
+        <h1 class="text-2xl font-bold">Gen Art</h1>
         <h3>By <span class="font-bold mt-1"> Praise</span></h3>
         <ul class="flex space-x-8">
             <li>
@@ -155,21 +155,18 @@
                 class="md:w-64 bg-gray-800 mb-4 mr-4 rounded-md shadow-xl"
             >
                 <img
-                src="img.png"
-                class="hover:scale-75 ease-in duration-500"
+                :src="token.image"
+                class="hover:scale-75 ease-in duration-500 rounded-md"
                 alt="BAYC Ape"
                 />
                 <div class="bg-white text-black p-2 rounded-md">
                 <h2 class="text-md font-semibold mt-3">#{{ token.id }}</h2>
                 <div class="flex justify-between items-center text-sm mt-2">
-                    <p class="font-semibold text-lg" v-if="getTokenPrice(token.id) != null">
-                    <i class=" fab fa-ethereum"></i> {{ getTokenPrice(token.id) }}
-                    <span class="font-thin text-xs">ETH</span>
+                    <p class="font-semibold text-lg">
+                    <i class=" fab fa-ethereum"></i> {{ token.price }}
+                    <span class="font-thin text-xs"></span>
                     </p>
-                    <p class="font-semibold text-lg" v-else>
                     
-                    <span class="font-thin text-xs">No active listing</span>
-                    </p>
 
                     <!-- <button @click="buyItem(token.id)" class="px-4 rounded-md float-right py-1 bg-black text-white">Buy</button> -->
                 </div>
@@ -189,26 +186,20 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, ref, computed } from "vue";
+import { ref, watch } from "vue";
 import { ethers } from "ethers";
+import { useQuery } from '@vue/apollo-composable'
+import gql from 'graphql-tag'
 import { useRouter, useRoute } from "vue-router";
 import { webStore } from "../store";
-import { listingStore } from "../listingsStore";
-import { saleStore } from "../saleStore";
 import Activity from './Activity.vue'
 import { storeToRefs } from "pinia";
+import { parse } from "graphql";
 
-//relative time format
-import * as dayjs from "dayjs";
-dayjs().format();
-import * as relativeTime from "dayjs/plugin/relativeTime";
-dayjs.extend(relativeTime);
+
 
 const router = useRouter();
 const store = webStore();
-const Listings = listingStore();
-const listings = Listings.listings;
-const sales = saleStore().sales;
 const tokens = ref([]);
 const price = ref(0);
 const no_of_tokens = ref(0);
@@ -220,68 +211,108 @@ const no_of_owners = ref(0);
 const Volume = ref(0)
 
 const testNFT = store.testNFT;
-console.log("Curr account: ", store.currentAccount);
+const nftMarketplace = store.NFTMarketplace;
+
+const getFloorPrice = async () => {
+
+  //get floor price
+  const { result } = useQuery(gql`
+      query getFloorPrice {
+        nftListings(orderBy: price, orderDirection: asc, first:1) {
+          price
+        }
+      }
+    `)
+    
+    watch(result, value => {
+      floorPrice.value = Number(ethers.utils.formatEther(value.nftListings[0]['price']))
+	  console.log(value.nftListings[0]['price'])
+    })
+
+
+};
+getFloorPrice()
+
+const getVolume = async() => {
+	//get total number of sales
+	const { result } = useQuery(gql`
+      query getVolume {
+        nftSales(first:100) {
+          price
+        }
+      }
+    `)
+    
+    watch(result, value => {
+		let priceArray = []
+		for (let i = 0; i < value.nftSales.length; i++) {
+			priceArray.push(value.nftSales[i]['price'])
+		}
+		Volume.value = (priceArray.reduce((a, b) => a + b) / 10 ** 18)
+    })
+}
+getVolume()
 
 const fetchNFTTokens = async () => {
-  let loop = true;
-  let num = 1;
   let ownerArray = [];
-  while (loop) {
-    try {
-      //Fetch tokens
-      const response = await testNFT.ownerOf(num);
-      console.log(response);
-      const Item = {
-        id: num,
-        owner: response,
-      };
-      tokens.value.push(Item);
-      console.log('here')
+  
+  //get token count 
+  no_of_tokens.value = await testNFT.tokenCount();
+  
+  const tokenCount = Number((await no_of_tokens.value).toString());
+  for (let index = 1; index <= tokenCount; index++) {
+	  try {
+		const owner = await testNFT.ownerOf(index);
+		
+		const Item = {
+			id: index,
+			owner: owner,
+			price: await getTokenPrice(index),
+			image: await getTokenImage(index)
+		};
+		tokens.value.push(Item);
 
-      //Get number of owners
-      ownerArray.push(response);
-
-      ++num;
-    } catch (error) {
-      console.log("No more tokens");
-      loop = false;
-    }
+		//get number of unique owners
+		ownerArray.push(owner);
+		no_of_owners.value = new Set(ownerArray).size;
+	  }catch (error) {
+		console.log("No more tokens");
+	}
+	  
   }
-  no_of_tokens.value = num - 1;
-  no_of_owners.value = new Set(ownerArray).size;
+  
 };
 
 fetchNFTTokens();
 
-const getStats = async () => {
-  if (listings.length != 0) {
-    let fP = 0;
-    for (let index = 0; index < listings.length; index++) {
-      let price = Number(ethers.utils.formatEther(listings[index].price));
-      if (fP > price || fP == 0) {
-        fP = price;
-      }
-    }
-    floorPrice.value = fP;
-  }
-  if (sales.length != 0) {
-      let volume = 0
-      for (let index = 0; index < sales.length; index++) {
-          volume = volume + Number(ethers.utils.formatEther(sales[index].price))
-      }
-      Volume.value = Number(volume.toFixed(2))
-  }
-};
-getStats();
-
-const getTokenPrice = (tokenId) => {
-  for (let index = 0; index < listings.length; index++) {
-    if (listings[index].tokenId == tokenId) {
-      return ethers.utils.formatEther(listings[index].price) ? ethers.utils.formatEther(listings[index].price) : null ;
-    }
-  }
+const getTokenPrice = async(tokenId: number) => {
+	//get price if listed
+	const response = (await nftMarketplace.getListing(testNFT.address, tokenId))['price']
+	return response == 0 ? 'No active listing' : ethers.utils.formatEther(response) + 'ETH'
 };
 
+const parseIpfs = (ipfsHash) => {
+	const URL = "https://gateway.pinata.cloud/ipfs/"
+	const hash = ipfsHash.replace(/^ipfs?:\/\//, '')
+	const ipfsURL = URL + hash
+
+	return ipfsURL
+} 
+
+
+
+async function getTokenImage(tokenId){
+	const ipfsHash = await testNFT.tokenURI(tokenId)
+	const pinataUrl = parseIpfs(ipfsHash)
+	const response = await fetch(pinataUrl);
+
+	if(!response.ok)
+	throw new Error(response.statusText);
+
+	const tokenUri = await response.json();
+	const tokenImage = parseIpfs(tokenUri.image) 
+	return tokenImage
+} 
 
 
 </script>
