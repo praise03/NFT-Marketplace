@@ -1,12 +1,15 @@
 ## Small Scale NFT Marketplace Project.
 
-
+```sh
+  Live demo: http://03-nftmarketplace.surge.sh/
+  ```
 
 This is an example of how you may give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps.
 
  ```sh
-  ToDo: Store activity on subgraph instead of localstorage
+  ToDo: Store activity on subgraph instead of localstorage ✅
+      : Perform all round optimisation
   ```
 
 ### Steps to Set up application

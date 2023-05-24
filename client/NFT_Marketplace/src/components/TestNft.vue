@@ -18,6 +18,8 @@
             
             <button @click="getOwner(tokenId)" class="px-6 py-2 bg-blue-600 rounded-md text-white mt-5">Get Owner</button>
         </div>
+
+        <h1 v-if="tokenOwner != ''">Owner : {{ tokenOwner }}</h1>
     </div>
 </template>
 
@@ -27,14 +29,17 @@
     import {ref} from 'vue'
     import { webStore } from "../store"
 
+
     const store = webStore()
     const testNFT = store.testNFT
 
     const addressTo = ref(null)
     const tokenId = ref(null)
+    const tokenOwner = ref('')
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
     let TestNft = store.testNFT
+
+    store.isConnectedToSepolia();
 
     
     const currentCounter = ref(null)
@@ -48,6 +53,7 @@
 
 
     const mintTo = async(addressTo) => {
+        if(!window.ethereum) {alert("You need to connect a wallet first"); return}
         try {
             const txresponce = await TestNft.safeMint(addressTo)
             await txresponce.wait(1)
@@ -60,7 +66,7 @@
     const getOwner = async(tokenId) => {
         try {
             const owner = await TestNft.ownerOf(tokenId)
-            console.log(owner)
+            tokenOwner.value = owner
         } catch (error) {
             console.log(error)
         }

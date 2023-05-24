@@ -2,12 +2,12 @@
 <div>
   <div>
     <div class="relative">
-        <img src="/banner.png" class="w-full h-80" alt="" />
+        <img src="/CryptopunksBg.png" class="w-full h-80" alt="" />
         <img src="/img.png" class="image  top-auto" alt="" />
     </div>
 
     <div class="p-6 space-y-3">
-        <h1 class="text-2xl font-bold">{{store.currentAccount}}</h1>
+        <h1 class="text-2xl font-bold">{{account}}</h1>
     </div>
 
     <div class=" w-full border-b mb-4 flex  flex-row space-x-10">
@@ -34,25 +34,15 @@
                 class="md:w-64 bg-gray-800 mb-4 mr-4 rounded-md shadow-xl"
             >
                 <img
-                src="/img.png"
+                :src="token.image"
                 class="hover:scale-75 ease-in duration-500"
                 alt="BAYC Ape"
                 />
-                <div class="bg-white text-black p-2 rounded-md">
-                <h2 class="text-md font-semibold mt-3">#{{ token.id }}</h2>
-                <div class="flex justify-between items-center text-sm mt-2">
-                    <p class="font-semibold text-lg" v-if="getTokenPrice(token.id) != null">
-                    <i class=" fab fa-ethereum"></i> {{ getTokenPrice(token.id) }}
-                    <span class="font-thin text-xs">ETH</span>
-                    </p>
-                    <p class="font-semibold text-lg" v-else>
-                    
-                    <span class="font-thin text-xs">No active listing</span>
-                    </p>
-
-                    <!-- <button @click="buyItem(token.id)" class="px-4 rounded-md float-right py-1 bg-black text-white">Buy</button> -->
+                <div class="bg-white text-black p-2 ">
+                <h2 class="text-md font-semibold mt-3">Art Piece #{{ token.id }}</h2>
                 </div>
-                </div>
+                <button class=" px-4 w-full rounded-b-sm py-1 bg-blue-600 text-white">{{token.price}}</button>
+                
             </div>
             </div>
         </div>
@@ -280,10 +270,14 @@ const userActivity = ref([]);
 const userTokens = ref([]);
 
 const route = useRoute();
+const router = useRouter();
 
 const store = webStore()
 const testNFT = store.testNFT
+const nftMarketplace = store.NFTMarketplace
 const account = route.params.account
+
+store.isConnectedToSepolia();
 
 const getRelativeTime = (timestamp) => {
   const parsedTime = moment.unix(timestamp);
@@ -294,6 +288,59 @@ const getRelativeTime = (timestamp) => {
 const parsePrice = (price) => {
   return price / (10 ** 18) ? price / (10 ** 18) + 'E' : "------";
 };
+
+const getTokenPrice = async(tokenId: number) => {
+	//get price if listed
+	const response = (await nftMarketplace.getListing(testNFT.address, tokenId))['price']
+  return response == 0 ? 'No active listing' : 'Buy Now: ' + ethers.utils.formatEther(response) + ' ETH'
+};
+
+const fetchUserTokens = async() => {
+    let tokenCount = await testNFT.tokenCount();
+    tokenCount = tokenCount.toString()
+
+    for (let index = 1; index <= tokenCount; index++) {
+      try {
+      const owner = await testNFT.ownerOf(index);
+      
+      const Item = {
+        id: index,
+        owner: owner,
+        price: await getTokenPrice(index),
+        image: await getTokenImage(index)
+      };
+
+      userTokens.value.push(Item)
+      } catch(error){
+        console.log(error)
+      }
+}
+}
+fetchUserTokens();
+
+
+const parseIpfs = (ipfsHash) => {
+	const URL = "https://gateway.pinata.cloud/ipfs/"
+	const hash = ipfsHash.replace(/^ipfs?:\/\//, '')
+	const ipfsURL = URL + hash
+
+	return ipfsURL
+} 
+
+
+
+async function getTokenImage(tokenId){
+	const ipfsHash = await testNFT.tokenURI(tokenId)
+	const pinataUrl = parseIpfs(ipfsHash)
+	const response = await fetch(pinataUrl);
+
+	if(!response.ok)
+	throw new Error(response.statusText);
+
+	const tokenUri = await response.json();
+	const tokenImage = parseIpfs(tokenUri.image) 
+	return tokenImage
+}
 
 const getActivity = async() => {
   const userActivities = ref([])
@@ -341,65 +388,4 @@ const getActivity = async() => {
 }
 getActivity()
 
-const fetchUserTokens = async() => {
-    // const tokenCount = await testNFT._tokenCounter()
-    let loop = false;
-    let num = 1;
-    while (loop) {
-        try {
-        //Fetch tokens
-        const response = await testNFT.ownerOf(num);
-        console.log(response)
-        if (response == store.currentAccount) {
-            const Item = {
-                id: num,
-                owner: response,
-            };  
-            userTokens.value.push(Item);  
-        }
-        ++num;
-        } catch (error) {
-        console.log("No more tokens");
-        loop = false;
-        }
-    }
-}
-fetchUserTokens();
-
-const getTokenPrice = (tokenId:string) => {
-  const { result } = useQuery(gql`
-      query nftTokenPrice($tokenId: String ) {
-        nftListings(where : { tokenId: $tokenId } ) {
-            price
-        }
-      }
-    `, { tokenId: tokenId })
-    console.log(result)
-    watch(result, value => {
-      return value.nftListings[0].price / (10 ** 18)
-    })
-};
-
-const parseIpfs = (ipfsHash) => {
-	const URL = "https://gateway.pinata.cloud/ipfs/"
-	const hash = ipfsHash.replace(/^ipfs?:\/\//, '')
-	const ipfsURL = URL + hash
-
-	return ipfsURL
-} 
-
-
-
-async function getTokenImage(tokenId){
-	const ipfsHash = await testNFT.tokenURI(tokenId)
-	const pinataUrl = parseIpfs(ipfsHash)
-	const response = await fetch(pinataUrl);
-
-	if(!response.ok)
-	throw new Error(response.statusText);
-
-	const tokenUri = await response.json();
-	const tokenImage = parseIpfs(tokenUri.image) 
-	return tokenImage
-}
 </script>

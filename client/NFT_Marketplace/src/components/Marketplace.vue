@@ -2,8 +2,8 @@
 <div>
   <div>
     <div class="relative">
-        <img src="banner.png" class="w-full h-80" alt="" />
-        <img src="img.png" class="image  top-auto" alt="" />
+        <img src="/CryptopunksBg.png" class="w-full h-80" alt="" />
+        <img src="/img.png" class="image  top-auto" alt="" />
         </div>
 
         <div class="p-6 space-y-3">
@@ -159,18 +159,11 @@
                 class="hover:scale-75 ease-in duration-500 rounded-md"
                 alt="BAYC Ape"
                 />
-                <div class="bg-white text-black p-2 rounded-md">
-                <h2 class="text-md font-semibold mt-3">#{{ token.id }}</h2>
-                <div class="flex justify-between items-center text-sm mt-2">
-                    <p class="font-semibold text-lg">
-                    <i class=" fab fa-ethereum"></i> {{ token.price }}
-                    <span class="font-thin text-xs"></span>
-                    </p>
-                    
-
-                    <!-- <button @click="buyItem(token.id)" class="px-4 rounded-md float-right py-1 bg-black text-white">Buy</button> -->
+                <div class="bg-white text-black p-2">
+                <h2 class="text-md font-semibold mt-1">Art Piece #{{ token.id }}</h2>
                 </div>
-                </div>
+                
+                <button class=" px-4 w-full rounded-b-sm py-1 bg-blue-600 text-white">{{token.price}}</button>
             </div>
             </div>
         </div>
@@ -203,6 +196,8 @@ const store = webStore();
 const tokens = ref([]);
 const price = ref(0);
 const no_of_tokens = ref(0);
+
+store.isConnectedToSepolia();
 
 const currentTab = ref("items")
 
@@ -259,7 +254,7 @@ const fetchNFTTokens = async () => {
   //get token count 
   no_of_tokens.value = await testNFT.tokenCount();
   
-  const tokenCount = Number((await no_of_tokens.value).toString());
+  const tokenCount = Number((no_of_tokens.value).toString());
   for (let index = 1; index <= tokenCount; index++) {
 	  try {
 		const owner = await testNFT.ownerOf(index);
@@ -288,7 +283,7 @@ fetchNFTTokens();
 const getTokenPrice = async(tokenId: number) => {
 	//get price if listed
 	const response = (await nftMarketplace.getListing(testNFT.address, tokenId))['price']
-	return response == 0 ? 'No active listing' : ethers.utils.formatEther(response) + 'ETH'
+	return response == 0 ? 'No active listing' : 'Buy Now: ' + ethers.utils.formatEther(response) + ' ETH'
 };
 
 const parseIpfs = (ipfsHash) => {

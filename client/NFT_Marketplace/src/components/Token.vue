@@ -48,13 +48,14 @@
       <span v-if="isOwner()" class="flex font-thin text-xs">Owned by You</span>
 	  <span v-else class="flex font-thin text-xs"
         >Owned By
-        <p class="text-blue-600 ml-1 text-md">{{token.owner.substring(0,6)}}....</p>
+        <p @click="router.push('/account/' + token.owner)" class="cursor-pointer text-blue-600 ml-1 text-md">{{token.owner.substring(0,6)}}....</p>
       </span>
 
-      <div v-if="token.price != null & token.price != undefined & token.price.length != 0" class="p-6 border rounded-md mt-8">
+      <div v-if="token.price != null && token.price != undefined && token.price.length != 0" class="p-6 border rounded-md mt-8">
         <p class="font-thin text-sm">Current Price</p>
         <h2 class="text-3xl font-bold mt-1">
-          {{token.price}} ETH <span class="font-thin text-xs">${{token.price * 1204}}</span>
+			<!-- current eth amount in usd -->
+          {{token.price}} ETH <span class="font-thin text-xs">${{Number(token.price) * 1204}}</span>
         </h2>
 
         <button
@@ -81,26 +82,39 @@ import { useNotification } from "@kyvg/vue3-notification";
 
 const { notify}  = useNotification()
 
+// declare let window: any;
+
 const route = useRoute();
 const router = useRouter();
 const store = webStore();
 
+store.isConnectedToSepolia()
 const testNFT = store.testNFT
 const NFTMarketplace = store.NFTMarketplace
 
 interface Token {
 	owner: string,
 	price: string,
-	uri: Object
+	uri: {
+		attributes: {}[],
+		image : string
+		name : string
+		tokenId : number
+	}
 }
 
 const token : Token = reactive({
 	owner: '',
 	price: '',
-	uri: ''
+	uri: {
+		attributes: [],
+		image : "",
+		name : "",
+		tokenId : 0
+	}
 })
 
-const listingPrice = ref('')
+const listingPrice = ref()
 
 const fetchToken = async() => {
 	if(!route.params.id){return}
@@ -205,6 +219,7 @@ const lowerPrice = async () => {
 }
 
 const buyItem = async () => {
+	if(!window.ethereum) {alert("You need to connect a wallet first"); return}
 	try {
 		const price = ethers.utils.parseUnits(token.price,"ether")
 		if (!price) {return}
